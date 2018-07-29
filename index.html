@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Metaprogramming in Ruby</title>
+  <meta name="description" content="">
+  <meta name="author" content="Oleksii Drobiazko">
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="stylesheet" href="css/reveal.min.css">
+  <link rel="stylesheet" href="css/theme/serif.css" id="theme">
+  <!-- For syntax highlighting -->
+  <link rel="stylesheet" href="lib/css/zenburn.css">
+  <!-- If the query includes 'print-pdf', include the PDF print sheet -->
+  <script>
+    if( window.location.search.match( /print-pdf/gi ) ) {
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = 'css/print/pdf.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+    }
+  </script>
+  <style type="text/css">
+    .reveal pre { box-shadow: none !important; }
+  </style>
+  <!--[if lt IE 9]>
+  <script src="lib/js/html5shiv.js"></script>
+  <![endif]-->
+</head>
+
+  <body>
+    <div class="reveal">
+      <!-- Any section element inside of this container is displayed as a slide -->
+      <div class="slides">
+        <section>
+          <h1>Metaprogramming in Ruby</h1>
+          <div style="padding-top: 40px;">
+            <h3>Oleksii Drobiazko</h3>
+            <p>drobazko@gmail.com</p>
+            <p><a href="http://github.com/drobazko">http://github.com/drobazko</a></p>
+          </div>
+          <a href=""></a>
+        </section>
+        <section>
+          <p>https://en.wikipedia.org/wiki/Metaprogramming</p>
+          <blockquote>
+            Metaprogramming is a programming technique in which computer programs have the ability to treat programs as their data. It means that a program can be designed to read, generate, analyse or transform other programs, and even modify itself while running.
+          </blockquote>
+        </section>
+        <section>
+          <h3>Ruby Object Model</h3>
+          <img src="img/objects.png">
+        </section>
+        <section>
+          <h3>Class is object, Object is class idiom</h3>
+          <ul>
+            <li>Every class you declare is an instance of Class class</li>
+            <li>Object is class in Ruby Object Model</li>
+          </ul>
+        </section>
+        <section>
+          <h2>method_missing</h2>
+          <blockquote>
+            Invoked by Ruby when obj is sent a message it cannot handle. symbol is the symbol for the method called, and args are any arguments that were passed to it. By default, the interpreter raises an error when this method is called. However, it is possible to override the method to provide more dynamic behavior.
+          </blockquote>
+        </section>
+        <section>
+          <h3>Dog's object model</h3>
+          <pre>
+            <code>
+class Dog
+  def method_missing(method_name, *args, &block)
+    if method_name == :bark
+      'woof!'
+    else
+      super
+    end
+  end
+end
+            </code>
+
+            <code>
+Dog.new.bark
+=> "woof!"              
+            </code>
+          </pre>          
+        </section>
+        <section>
+          <h3>method_missing could be overridden as class method as well</h3>
+          <pre>
+            <code>
+class LoudSpeaker
+  def self.method_missing(message, *args, &block)
+    if [:exclaim, :yodel, :howl, :sob, :beg].include?(message)
+      puts args.first
+    else
+      # we don't want to handle this missing method, 
+      # we want Ruby to raise the NoMethodError it ought to
+      super
+    end
+  end
+end
+            </code>
+            <code>
+LoudSpeaker.exclaim "helloooo!"
+=> helloooo!
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h3>Always override respond_to_missing? method</h3>
+          <p>respond_to_missing? method should be always overridden if you are using method_missing technique</p>
+          <pre>
+            <code>
+class Dog
+  def method_missing(method_name, *args, &block)
+    if method_name == :bark
+      'woof!'
+    else
+      super
+    end
+  end
+
+  def respond_to_missing?(method, *)
+    method == :bark || super
+  end
+end             
+            </code>
+
+            <code>
+Dog.new.respond_to?(:bark)
+=> true
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h3>Monkey patching</h3> 
+          <h3><span class="fragment current-fragment" data-fragment-index="0">is the ability to re-open any class and change it’s methods</span></h3>
+        </section>
+
+        <section>
+          <h3>Monkey patching example</h3>
+          <pre>
+            <code>
+class String
+  def to_string
+    "#{self} - #{Time.now}"
+  end
+end              
+            </code>
+            <code>
+p 'any text'.to_string
+=> any text - 2018-07-23 11:09:52 +0300
+              
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h3>Monkey patching use cases</h3>
+          <ul>
+            <li>add a convenience method to standard classes that has no side effect, e.g. to_string method</li>
+            <li>change your own classes</li>
+            <li>change/fix behavior of gem in Rails app</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Be careful with monkey patching it might introduce a lot of mess</h2>
+        </section>
+
+        <section>
+          <h2>Ruby is dynamically typed language</h2>
+          <h3><span class="fragment current-fragment" data-fragment-index="0">Objects in Ruby are defined by the methods on them and not what type of thing they are</span></h3>
+        </section>
+
+        <section>
+          <h2>Idiom “If it walks like a duck, and quacks like a duck, then it must be a duck”</h2>
+        </section>
+
+        <section>
+          <h2>Duck Typing example</h2>
+          <pre>
+            <code>
+    class Department
+      def initialize(employees)
+        @employees = employees
+      end
+
+      def calculate
+        @employees.map(&:calculate).sum
+      end
+    end 
+
+    class Employee
+      def initialize(salary)
+        @salary = salary
+      end
+
+      def calculate
+        @salary * 0.8
+      end
+    end
+
+    employees = [
+      Employee.new(1000), 
+      Employee.new(5000) 
+    ]
+
+    total_salary = Department.new(employees).calculate          
+            </code>
+
+            <code>
+    p total_salary
+    => 4800.0
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h2>class_eval & instance_eval</h2>
+          <h3>the methods allow you to evaluate arbitrary code in the context of a particular class or object</h3>
+        </section>
+
+        <section>
+          <h2>class_eval</h2>
+          <pre>
+            <code>
+class Dog; end
+
+Dog.class_eval do
+  def bark
+    'Woof!'
+  end
+end
+            </code>
+            <code>
+p Dog.new.bark
+=> Woof
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h2>instance_eval</h2>
+          <pre>
+            <code>
+class Dog; end
+
+Dog.instance_eval do
+  def bark
+    'Woof!'
+  end
+end
+            </code>
+            <code>
+p Dog.bark
+=> Woof
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h3>
+            It's still easy to remember how these methods behave with a simple mnemonic device: 
+          </h3>
+          <h3><span class="fragment current-fragment" data-fragment-index="0">when called on a class name constant, these two methods will allow you to create methods of the opposite type from their names.</span></h3>
+
+          <h3><span class="fragment current-fragment" data-fragment-index="1">MyClass.class_eval will create instance methods and MyClass.instance_eval will create class methods</span></h3>
+        </section>
+
+        <section>
+          <h2>Mix-ins</h2>
+          <h3>A Mixin is Module that is included into a Class. When you “mixin” a Module into a Class, the Class will have access to the methods of the Module</h3>
+          <pre>
+            <code>
+module Communication
+  def greeting
+    "Hey, #{name}"
+  end
+end
+
+class Person
+  include Communication
+
+  def name
+    'John Doe'
+  end
+end
+            </code>
+
+            <code>
+p Person.new.greeting
+=> Hey, John Doe
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h2>Hook methods</h2>
+          <ul>
+            <li>included</li>
+            <li>extended</li>
+            <li>prepended</li>
+            <li>inherited</li>
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Included hook</h2>
+          <pre>
+            <code>
+module PersonGreeting
+  def greeting
+    "Hey, #{name}"
+  end
+end
+
+module DepartmentGreeting
+  def greeting
+    "Department #{title}"
+  end
+end
+
+module Communication
+  def self.included(base)
+    base.include Object.const_get("#{base}Greeting")
+  end
+end
+
+class Person
+  include Communication
+
+  def name
+    'John Doe'
+  end
+end
+
+class Department
+  include Communication
+
+  def title
+    'HR department'
+  end
+end
+              
+            </code>
+            <code>
+p Person.new.greeting
+=> Hey, John Doe
+
+p Department.new.greeting
+=> Department HR department
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h2>Devise gem</h2>
+          <pre>
+            <code>
+          
+class User < ActiveRecord::Base
+  devise :database_authenticatable, :registerable,
+         :recoverable, :rememberable, :trackable, :validatable
+end              
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h2>Pros</h2>
+          <ul>
+            <li>Flexible code</li>
+            <li>Most Ruby gems take advantage of metaprogramming</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Cons</h2>
+          <ul>
+            <li>code harder to read and harder to debug</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>What to read next</h2>
+          <ul>
+            <li>Metaprogramming Ruby, Paolo Perrotta</li>
+            <li>Crafting Rails Applications, José Valim</li>
+            <li>Ruby Under a Microscope, Pat Shaughnessy</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Q&A</h2>
+            <p>&nbsp;</p>
+          <h3>Oleksii Drobiazko</h3>
+          <p>drobazko@gmail.com</p>
+          <p><a href="http://github.com/drobazko">http://github.com/drobazko</a></p>
+        </section>
+
+      </div>
+    </div>
+
+    <script src="lib/js/head.min.js"></script>
+    <script src="js/reveal.min.js"></script>
+    <script>
+      // Full list of configuration options available here:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+        controls: false,
+        progress: true,
+        history: true,
+        center: true,
+        slideNumber: true,
+        theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+        transition: 'fade', // default/cube/page/concave/zoom/linear/fade/none
+
+        // Optional libraries used to extend on reveal.js
+        dependencies: [
+          { src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+          { src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+          { src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+        ]
+      });
+    </script>
+  </body>
+</html>
