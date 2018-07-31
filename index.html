@@ -35,11 +35,11 @@
       <!-- Any section element inside of this container is displayed as a slide -->
       <div class="slides">
         <section>
-          <h1>Metaprogramming in Ruby</h1>
-          <div style="padding-top: 40px;">
-            <h3>Oleksii Drobiazko</h3>
-            <p>drobazko@gmail.com</p>
-            <p><a href="http://github.com/drobazko">http://github.com/drobazko</a></p>
+          <h2>Metaprogramming in Ruby</h2>
+          <div style="padding-top: 40px; font-size: 24px;">
+            <div>Oleksii Drobiazko,</div>
+            <div>drobazko@gmail.com</div>
+            <div><a href="http://github.com/drobazko">http://github.com/drobazko</a></div>
           </div>
           <a href=""></a>
         </section>
@@ -60,6 +60,68 @@
             <li>Object is class in Ruby Object Model</li>
           </ul>
         </section>
+        <section>
+          <h3>Eigenclass aka Sigleton Class</h3>
+          <blockquote>Singleton methods in Ruby live in a special, hidden class called the singleton class</blockquote>
+          <pre class="fragment current-fragment" data-fragment-index="0">
+            <code>
+foobar = Array.new
+foobar.class # => Array
+foobar.size  # => 0              
+
+foobar = Array.new
+
+def foobar.size
+  "Hello World!"
+end
+
+foobar.size  # => "Hello World!"
+foobar.class # => Array
+
+bizbat = Array.new
+bizbat.size  # => 0
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h3>Sigleton Class</h3>
+          <pre>
+            <code>
+foobar = Array.new
+
+def foobar.size
+  "Hello World!"
+end
+
+foobar.size  # => "Hello World!"
+foobar.class # => Array
+
+bizbat = Array.new
+bizbat.size  # => 0
+              
+            </code>
+          </pre>
+          <img src="img/singleton-array.jpg">
+        </section>
+
+        <section>
+          <h3>Class methods lives in singleton class as well</h3>
+          <pre>
+            <code>
+module Foo
+  def foo
+    "Hello World!"
+  end
+end
+
+foobar = []
+foobar.extend(Foo)
+foobar.singleton_methods # => ["foo"]              
+            </code>
+          </pre>
+        </section>
+
         <section>
           <h2>method_missing</h2>
           <blockquote>
@@ -85,7 +147,7 @@ end
 Dog.new.bark
 => "woof!"              
             </code>
-          </pre>          
+          </pre>
         </section>
         <section>
           <h3>method_missing could be overridden as class method as well</h3>
@@ -113,6 +175,10 @@ LoudSpeaker.exclaim "helloooo!"
         <section>
           <h3>Always override respond_to_missing? method</h3>
           <p>respond_to_missing? method should be always overridden if you are using method_missing technique</p>
+        </section>
+
+        <section>
+          <h3>Overridden <b>respond_to_missing?</b> method</h3>
           <pre>
             <code>
 class Dog
@@ -129,11 +195,19 @@ class Dog
   end
 end             
             </code>
-
             <code>
 Dog.new.respond_to?(:bark)
 => true
-            </code>
+            </code>            
+
+          </pre>
+        </section>
+        <section>
+          <pre>
+            <code>
+Dog.new.respond_to?(:bark)
+=> true
+            </code>            
           </pre>
         </section>
 
@@ -212,12 +286,12 @@ p 'any text'.to_string
     ]
 
     total_salary = Department.new(employees).calculate          
-            </code>
 
-            <code>
     p total_salary
     => 4800.0
+
             </code>
+
           </pre>
         </section>
 
@@ -268,14 +342,22 @@ p Dog.bark
           <h3>
             It's still easy to remember how these methods behave with a simple mnemonic device: 
           </h3>
-          <h3><span class="fragment current-fragment" data-fragment-index="0">when called on a class name constant, these two methods will allow you to create methods of the opposite type from their names.</span></h3>
-
-          <h3><span class="fragment current-fragment" data-fragment-index="1">MyClass.class_eval will create instance methods and MyClass.instance_eval will create class methods</span></h3>
+        </section>
+        <section>
+          <h3>when called on a class name constant, these two methods will allow you to create methods of the opposite type from their names</h3>          
+        </section>
+        <section>
+          <h3>MyClass.class_eval will create instance methods and MyClass.instance_eval will create class methods</h3>
         </section>
 
         <section>
           <h2>Mix-ins</h2>
-          <h3>A Mixin is Module that is included into a Class. When you “mixin” a Module into a Class, the Class will have access to the methods of the Module</h3>
+          <h3>A Mixin is Module that is included into a Class</h3>
+          <h3>When you “mixin” a Module into a Class, the Class will have access to the methods of the Module</h3>
+        </section>
+
+        <section>
+          <h3>Mix-ins example</h3>
           <pre>
             <code>
 module Communication
@@ -291,15 +373,14 @@ class Person
     'John Doe'
   end
 end
-            </code>
 
-            <code>
 p Person.new.greeting
 => Hey, John Doe
+
             </code>
           </pre>
         </section>
-
+          
         <section>
           <h2>Hook methods</h2>
           <ul>
@@ -332,7 +413,14 @@ module Communication
     base.include Object.const_get("#{base}Greeting")
   end
 end
+              
+            </code>
+          </pre>
+        </section>
 
+        <section>
+          <pre>
+            <code>
 class Person
   include Communication
 
@@ -347,19 +435,17 @@ class Department
   def title
     'HR department'
   end
-end
-              
-            </code>
-            <code>
+end              
+
 p Person.new.greeting
 => Hey, John Doe
 
 p Department.new.greeting
 => Department HR department
+
             </code>
           </pre>
         </section>
-
         <section>
           <h2>Devise gem</h2>
           <pre>
@@ -368,6 +454,173 @@ p Department.new.greeting
 class User < ActiveRecord::Base
   devise :database_authenticatable, :registerable,
          :recoverable, :rememberable, :trackable, :validatable
+end              
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h2>Blocks</h2>
+          <pre>
+            <code>
+def test
+   puts "You are in the method"
+   yield
+   puts "You are again back to the method"
+   yield
+end
+test { puts "You are in the block" } 
+            </code>
+          </pre>
+          <pre>
+            <code>
+You are in the method
+You are in the block
+You are again back to the method
+You are in the block              
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h2>Blocks</h2>
+          <pre>
+            <code>
+def test
+   yield 5
+   puts "You are in the method test"
+   yield 100
+end
+test { |i| puts "You are in the block #{i}" }
+            </code>
+          </pre>
+
+          <pre>
+            <code>
+You are in the block 5
+You are in the method test
+You are in the block 100              
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h2>Explicit block parameter</h2>
+          <pre>
+            <code>
+
+def test(&block)
+   block.call
+end
+test { puts "Hello World!"}              
+            </code>
+          </pre>
+          <pre>
+            <code>
+Hello World!
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h2>DSL is a domain-specific language</h2>
+        </section>
+
+        <section>
+          <h2>RSpec - DSL</h2>
+          <pre>
+            <code>
+describe Array do
+  describe "includes_subset?" do
+    it "finds subsets" do
+      a = [1,2,3,4,5]
+      b = [1,2]
+      expect(a.includes_subset?(b)).to eq(true)
+    end
+  end
+end              
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h2>Rake task - DSL</h2>
+          <pre>
+            <code>
+namespace :backup do
+  desc "Backup assets"
+  task :assets => :environment do
+    tar_assets
+  end
+end
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h2>HTML</h2>
+          <pre>
+            <code>
+&#x3C;html&#x3E;
+  &#x3C;pre&#x3E;
+    &#x3C;span&#x3E;&#x3C;/span&#x3E;
+  &#x3C;/pre&#x3E;
+  &#x3C;pre&#x3E;&#x3C;/pre&#x3E;
+&#x3C;/html&#x3E;
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h2>Simple HTML DSL</h2>
+          <pre>
+            <code>
+class Html
+  attr_accessor :content
+
+  def self.build(&block)
+    Html.new &block
+  end
+
+  def initialize(&block)
+    @content = ''
+    html &block
+  end
+
+  def html(&block)
+    content << '<html>'
+    instance_eval(&block).to_s
+    content << '</html>'
+  end
+
+  def pre(&block)
+    content << '<pre>'
+    instance_eval(&block).to_s
+    content << '</pre>'
+  end
+
+  def div(&block)
+    content << '<div>'
+    instance_eval(&block).to_s
+    content << '</div>'
+  end
+
+  def span(&block)
+    content << '<span>'
+    instance_eval(&block).to_s
+    content << '</span>'
+  end
+end
+
+
+html = Html.build do
+  pre do
+    span do
+    end
+  end
+  
+  pre do
+  end
 end              
             </code>
           </pre>
@@ -398,14 +651,20 @@ end
         </section>
 
         <section>
-          <h2>Q&A</h2>
-            <p>&nbsp;</p>
-          <h3>Oleksii Drobiazko</h3>
-          <p>drobazko@gmail.com</p>
-          <p><a href="http://github.com/drobazko">http://github.com/drobazko</a></p>
+          <div><img src="img/eteam.png" style="border: none; box-shadow: none; width: 300px;" /></div>
+          
+          <h2>academy.eteam.io</h2>
         </section>
-
       </div>
+
+        <div style="display: block; position: absolute; top: 3%; left: 3%; z-index: 20;">
+          <img src="img/eteam.png">
+        </div>
+        <div style="display: block; position: absolute; bottom: 14px; left: 50%; margin-left: -150px; z-index: 20;">
+          <small>academy.eteam.io &bull; <span style="color: red;">academy@eteam.io</span></small>
+
+        </div>
+
     </div>
 
     <script src="lib/js/head.min.js"></script>
